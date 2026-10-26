@@ -1,3 +1,16 @@
+Motivation and Use Case
+
+Wireless Dataset Analyzer was developed for two complementary purposes: as a practical data analysis project for my software development portfolio and as a personal tool for my interest in wardriving.
+
+Wardriving involves collecting observations of nearby wireless networks while travelling through an area. This project focuses on the data analysis stage: processing WiGLE exports, validating records, identifying duplicates, summarising wireless network characteristics, and visualising signal strength, authentication modes, channel distribution, and geographic density.
+
+The project provides hands-on experience with Python, data cleaning, validation, data processing pipelines, automated testing, and data visualisation, while helping me explore wireless network distributions in datasets collected for personal research.
+
+Privacy: Dataset processing is performed locally. Do not publish raw datasets containing identifiable or sensitive information. Only collect and analyse wireless data in accordance with applicable laws and respect for others' privacy.
+
+
+
+
 # Wireless Dataset Analyzer
 
 A small, reproducible Python pipeline for profiling and analyzing WiGLE CSV
