@@ -1,0 +1,15 @@
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+output*/
+data/
+*.csv
+*.csv.gz
+*.kml
+.pytest_cache/
