@@ -7,9 +7,13 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-output*/
+
 data/
+output/
+output*/
 *.csv
 *.csv.gz
 *.kml
 .pytest_cache/
+
+.env
