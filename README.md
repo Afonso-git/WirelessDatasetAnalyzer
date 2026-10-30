@@ -1,163 +1,96 @@
-Motivation and Use Case
+Wireless Dataset Analyzer
 
-Wireless Dataset Analyzer was developed for two complementary purposes: as a practical data analysis project for my software development portfolio and as a personal tool for my interest in wardriving.
+A Python pipeline for cleaning, validating, and analyzing WiGLE wireless network exports. This project combines data engineering fundamentals with my interest in wardriving.
 
-Wardriving involves collecting observations of nearby wireless networks while travelling through an area. This project focuses on the data analysis stage: processing WiGLE exports, validating records, identifying duplicates, summarising wireless network characteristics, and visualising signal strength, authentication modes, channel distribution, and geographic density.
+Features
 
-The project provides hands-on experience with Python, data cleaning, validation, data processing pipelines, automated testing, and data visualisation, while helping me explore wireless network distributions in datasets collected for personal research.
+Reads CSV and gzip-compressed CSV (.csv.gz) files.
 
-Privacy: Dataset processing is performed locally. Do not publish raw datasets containing identifiable or sensitive information. Only collect and analyse wireless data in accordance with applicable laws and respect for others' privacy.
+Detects common delimiters and handles UTF-8 BOM and WiGLE metadata rows.
 
+Validates network identifiers, row structure, numeric fields, and geographic coordinates.
 
+Detects exact duplicate records.
 
+Generates an aggregate JSON report and up to four charts covering signal strength, authentication modes, channels, and geographic density.
 
-# Wireless Dataset Analyzer
+Includes automated tests using synthetic datasets.
 
-A small, reproducible Python pipeline for profiling and analyzing WiGLE CSV
-exports. The first version reads plain CSV and gzip-compressed CSV, validates
-records, and produces aggregate reports and static charts. It does not modify
-the input or export cleaned row-level data.
+Privacy
 
-All processing happens locally. The application does not upload user data,
-send telemetry, or call external services. No real export or bundled sample
-dataset is included in the project; tests generate synthetic records at
-runtime.
+All processing is local. The application does not upload data, send telemetry, or call external services. It does not export cleaned row-level records.
 
-## Observed export format
+Reports and geographic heatmaps can still reveal sensitive information. Keep raw datasets and generated outputs private, and review any files before sharing them. The project does not include real WiGLE exports.
 
-The available full export was inspected without printing any record values. It
-contains a WiGLE metadata row, then a 14-column header, followed by 11,411 data
-records. The verified header is:
+Requirements and installation
 
-`MAC`, `SSID`, `AuthMode`, `FirstSeen`, `Channel`, `Frequency`, `RSSI`,
-`CurrentLatitude`, `CurrentLongitude`, `AltitudeMeters`, `AccuracyMeters`,
-`RCOIs`, `MfgrId`, `Type`.
+Python 3.10 or newer
 
-A second available export contained the metadata and header but no data records.
-The program recognizes the metadata-row format but does not assume that every
-input has this exact set of columns. It requires a `MAC` or `BSSID` column.
-Geographic processing is enabled only when a recognized latitude and longitude
-column are both present.
+Matplotlib
 
-## Requirements and installation
+Create a virtual environment and install the project from the repository root:
 
-- Python 3.10 or newer.
-- Matplotlib for chart generation.
-
-From the project directory in PowerShell:
-
-```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
-```
 
-The input reader and validator use only the Python standard library. Matplotlib
-is the only runtime dependency; the automated tests use `unittest`.
+Usage
 
-## Run the pipeline
+Pass a WiGLE CSV or .csv.gz file to the command-line interface:
 
-Pass the path to a `.csv` or `.csv.gz` file. The default output directory is
-`output` under the current directory.
+.\.venv\Scripts\wireless-analyzer.exe --input "C:\path\to\export.csv.gz" --output output
 
-```powershell
-.\.venv\Scripts\wireless-analyzer.exe --input "C:\path\to\WigleWifi_export.csv.gz" --output output
-```
+The default output directory is output. The command reports accepted, rejected, and duplicate record counts, along with the generated report and charts.
 
-Equivalent module invocation:
+Output
 
-```powershell
-.\.venv\Scripts\python.exe -m wireless_analyzer.cli --input "C:\path\to\WigleWifi_export.csv.gz" --output output
-```
+The pipeline generates report.json, containing aggregate counts, column completeness statistics, exclusion reasons, numeric summaries, and generated chart filenames.
 
-The command prints aggregate accepted/rejected/duplicate counts, the report
-location, and the number of charts generated. It does not print row values,
-MAC addresses, SSIDs, or coordinates.
+Available charts:
 
-## Outputs
+signal_strength.png — RSSI distribution.
 
-`output\report.json` contains:
+authentication_modes.png — authentication categories.
 
-- Header names and per-column present/missing counts, not column values.
-- Input, accepted, and rejected row totals.
-- Exclusion counts by reason, including malformed row widths and duplicates.
-- Count, minimum, maximum, mean, and median for recognized non-geographic
-  numeric fields (`Channel`, `Frequency`, `RSSI`, `AltitudeMeters`, and
-  `AccuracyMeters`) when valid values are available.
-- A count of accepted records with coordinate pairs.
-- The names of generated chart files.
+channels.png — observations by channel.
 
-Charts are generated only when suitable columns and usable values are present:
+geographic_density.png — geographic density heatmap when usable coordinates are available.
 
-- `signal_strength.png` — RSSI distribution.
-- `authentication_modes.png` — most common authentication categories.
-- `channels.png` — observations by channel.
-- `geographic_density.png` — a coarse density heatmap, when both coordinate
-  columns exist and accepted rows have usable coordinates.
+The heatmap uses coarse geographic bins. This reduces coordinate precision but does not guarantee anonymity.
 
-The geographic heatmap aggregates points into bins no finer than 0.025 degrees
-and hides axis tick values. For wide geographic extents, bins are made coarser
-to cap the grid at 250 cells per axis. This reduces coordinate precision but
-does not guarantee anonymity: location clusters can still be sensitive. Keep
-reports and charts private and review them before sharing. Row-level input data
-is never included in the report or exported to the output directory.
+Validation
 
-The project ignores CSV/CSV.GZ files, a `data/` directory, and directories
-whose names start with `output` to reduce the chance of accidentally publishing
-raw exports or generated reports. KML files and common virtual environment
-directories are ignored as well. Ignore rules do not remove files already
-tracked by Git; review the staged file list before publishing. Keep raw data
-and generated reports/charts out of public repositories even when they are
-coarse-grained or aggregate-only.
+The pipeline rejects invalid schemas, missing network identifiers, malformed rows, invalid coordinate pairs, and invalid nonblank numeric values in recognized fields. Records without coordinates are retained when both coordinate fields are blank.
 
-## Validation and cleaning rules
+Exact duplicate rows are counted and excluded, keeping the first occurrence. Structural CSV parsing errors stop the run rather than being treated as ordinary rejected records.
 
-1. Detect comma, semicolon, tab, or pipe delimiters; read UTF-8 CSV, including an
-   optional UTF-8 BOM. `.gz` files are decompressed while reading. A WiGLE
-   metadata row beginning with `WigleWifi-` is skipped.
-2. Reject files without a usable, unique header or without a `MAC`/`BSSID`
-   column. If only one coordinate column is present, report a schema error.
-3. Reject data rows whose field count differs from the header.
-4. Reject rows with a blank network identifier.
-5. If both coordinate values are blank, retain the record as non-geographic.
-   Reject a half-present, nonnumeric, non-finite, or out-of-range coordinate
-   pair (latitude outside -90..90 or longitude outside -180..180).
-6. For recognized `Channel`, `Frequency`, `RSSI`, `AltitudeMeters`, and
-   `AccuracyMeters` columns, allow blank values but reject nonnumeric or
-   non-finite nonblank values. No undocumented value ranges are assumed.
-7. Detect duplicates among otherwise valid rows by exact equality after
-   CSV parsing, without trimming field values. Keep the first occurrence and
-   count later copies as rejected duplicates. Whitespace differences in values
-   such as SSIDs are retained as distinct records.
+Tests
 
-Other fields are preserved in memory for aggregate analysis but are not subject
-to undocumented assumptions or range checks. Structural CSV parse errors fail the run explicitly rather than being treated
-as ordinary bad records. Use separate output directories for concurrent runs;
-on sequential reruns, obsolete analyzer-generated chart files are removed.
+Run the test suite with:
 
-## Architecture
-
-- `src/wireless_analyzer/ingest.py` — CSV/gzip parsing and header handling.
-- `src/wireless_analyzer/validation.py` — schema checks, profiling, validation,
-  duplicate detection, and cleaning.
-- `src/wireless_analyzer/reports.py` — aggregate report and charts.
-- `src/wireless_analyzer/pipeline.py` — end-to-end orchestration.
-- `src/wireless_analyzer/cli.py` — command-line entry point.
-- `tests/` — synthetic CSV/gzip fixtures and pipeline tests.
-
-## Tests
-
-```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
 
-The tests create temporary synthetic input and do not need access to the real
-export. They cover CSV and gzip parsing, schema requirements, validation,
-duplicate and malformed-row counts, privacy-safe report contents, and output
-chart generation.
+Tests use temporary synthetic CSV and gzip data. GitHub Actions automatically runs the test suite on Python 3.10 and 3.14.
 
-## Limitations and next steps
+Project structure
 
-This version keeps all parsed records in memory, so it is intended for modest
-exports. It does not geocode observations, publish data, or connect to a
-database. A future PostgreSQL/PostGIS integration can build on the validated
-schema and aggregate outputs without being required to run this pipeline.
+src/wireless_analyzer/ingest.py — input parsing.
+
+src/wireless_analyzer/validation.py — validation and duplicate detection.
+
+src/wireless_analyzer/reports.py — reports and charts.
+
+src/wireless_analyzer/pipeline.py — pipeline orchestration.
+
+src/wireless_analyzer/cli.py — command-line interface.
+
+tests/ — automated tests.
+
+Limitations and future work
+
+The pipeline keeps parsed records in memory and is intended for modest datasets. It does not geocode, publish, or store data in a database.
+
+Potential next steps include PostgreSQL/PostGIS integration and an interactive map using FastAPI and Leaflet.
+
+License
+
+MIT. See LICENSE.
